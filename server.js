@@ -45,6 +45,20 @@ if (!isProduction) {
 app.use('*home', async (req, res) => {
   try {
     const url = req.originalUrl.replace(base, '')
+    console.log('======= url here =======')
+    console.log(req.originalUrl)
+
+    // Extract the client ID from the URL
+    const clientIdMatch = req.originalUrl.match(/(\d+)(?!.*\d)/)
+    const clientId = clientIdMatch ? clientIdMatch[0] : null
+    console.log('Extracted client ID:', clientId)
+
+    let clientInfo = {}
+
+    const response = await fetch(
+      `https://d7jxq5gn-3001.euw.devtunnels.ms/wallets/clientInfo`
+    )
+    clientInfo = await response.json()
 
     let template
     let render
@@ -61,7 +75,21 @@ app.use('*home', async (req, res) => {
     const rendered = await render(url, ssrManifest)
 
     const html = template
-      .replace(`<!--app-head-->`, rendered.head ?? '')
+      .replace(
+        `<!--app-head-->`,
+        `
+        ${rendered.head ?? ''}
+        <meta property="og:title" content="${
+          clientInfo.name ?? 'Default Title'
+        }" />
+        <meta property="og:description" content="${
+          clientInfo.description ?? 'Default Description'
+        }" />
+        <meta property="og:image" content="${
+          clientInfo.image ?? 'default-image-url'
+        }" />
+      `
+      )
       .replace(`<!--app-html-->`, rendered.html ?? '')
 
     res.status(200).set({ 'Content-Type': 'text/html' }).send(html)
